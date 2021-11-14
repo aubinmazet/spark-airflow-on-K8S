@@ -32,30 +32,21 @@ spec:
             mountPath: /usr/local/airflow/dags
           - name: template
             mountPath: /usr/local/airflow/template
-        envFrom:
-          - configMapRef:
-              name: airflow-envvars
         env:
           - name: AIRFLOW__CORE__FERNET_KEY
             value: {{ .Values.airflow.fernetKey }}
           - name: AIRFLOW__CORE__SQL_ALCHEMY_CONN
             value: postgresql+psycopg2://{{ .Values.airflow.db.username }}:{{ .Values.airflow.db.password }}@{{ .Values.airflow.db.hostname }}/{{ .Values.airflow.db.database }}
+          - name: AIRFLOW__CORE__LOAD_EXAMPLES 
+            value: 'true'
+          - name: AIRFLOW__KUBERNETES__RUN_AS_USER
+            value: "50000"
           - name: AIRFLOW__API__AUTH_BACKEND
             value: airflow.api.auth.backend.basic_auth
-          - name: POSTGRES_HOST
-            value: postgres
-          - name: POSTGRES_USER
-            value: admin
-          - name: POSTGRES_PASSWORD
-            value: pwd
-          - name: POSTGRES_DB
-            value: testdb
-          - name: POSTGRES_PORT
-            value: "5432"
-          - name: AIRFLOW__CORE__LOAD_EXAMPLES 
-            value: 'false'
           - name: AIRFLOW__CORE__EXECUTOR
             value: {{ .Values.airflow.executor }}
+          - name: AIRFLOW__KUBERNETES__NAMESPACE
+            value: {{ include "airflow.serviceAccountName" . }}
         command:
           - "/usr/bin/dumb-init"
           - "--"

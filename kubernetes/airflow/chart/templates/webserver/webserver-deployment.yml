@@ -20,14 +20,12 @@ spec:
         - name: run-airflow-migrations
           image: aubinob1/airflow-local
           imagePullPolicy: IfNotPresent
-          args: ["bash", "-c", "airflow upgradedb || airflow db upgrade"]
+          args: ["bash", "-c", "airflow initdb|| airflow users create --role {{ .Values.airflow.users.role }} --username {{ .Values.airflow.users.username }} --password {{ .Values.airflow.users.password }} --firstname {{ .Values.airflow.users.firstName }} --lastname {{ .Values.airflow.users.lastName }} --email {{ .Values.airflow.users.email }}"]
           env:          
           - name: AIRFLOW__CORE__FERNET_KEY
             value: {{ .Values.airflow.fernetKey }}
           - name: AIRFLOW__CORE__SQL_ALCHEMY_CONN
             value: postgresql+psycopg2://{{ .Values.airflow.db.username }}:{{ .Values.airflow.db.password }}@{{ .Values.airflow.db.hostname }}/{{ .Values.airflow.db.database }}
-          - name: AIRFLOW__API__AUTH_BACKEND
-            value: airflow.api.auth.backend.basic_auth
       containers:
         - image: aubinob1/airflow-local
           imagePullPolicy: Always
@@ -42,12 +40,17 @@ spec:
               value: {{ include "airflow.fullname" . }}-postgres
             - name: AIRFLOW__CORE__SQL_ALCHEMY_CONN
               value: postgresql+psycopg2://{{ .Values.airflow.db.username }}:{{ .Values.airflow.db.password }}@{{ .Values.airflow.db.hostname }}/{{ .Values.airflow.db.database }}
-            - name: AIRFLOW__API__AUTH_BACKEND
-              value: airflow.api.auth.backend.basic_auth
             - name: AIRFLOW__CORE__LOAD_EXAMPLES 
               value: 'true'
             - name: AIRFLOW__CORE__EXECUTOR
               value: {{ .Values.airflow.executor }}
+            - name: AIRFLOW__KUBERNETES__NAMESPACE
+              value: airflow-staging
+            - name: AIRFLOW__API__AUTH_BACKEND
+              value: airflow.api.auth.backend.basic_auth
+            - name: AUTH_ROLE_PUBLIC
+              value: 'Admin'
+
           command:
                 - "/usr/bin/dumb-init"
                 - "--"
