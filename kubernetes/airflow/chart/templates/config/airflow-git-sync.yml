@@ -1,0 +1,18 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "airflow.fullname" . }}-git-sync
+  labels:
+    app.kubernetes.io/name: {{ include "airflow.name" . }}-git-sync
+data:
+  pull_git.sh: |
+    #!/bin/sh
+    SRC_REPO="https://github.com/aubinmazet/spark-airflow-on-K8S.git"
+    PATH_REPO="/usr/local/airflow/dags/"
+    cd "$PATH_REPO"
+    echo "[INFO] Git Clone"
+    GIT_SSL_NO_VERIFY=1 git clone --single-branch --branch {{ .Values.sidecar.tag }} --depth 1 "$SRC_REPO" "$PATH_REPO" 2> /dev/null || GIT_SSL_NO_VERIFY=1 git -C "$PATH_REPO" pull --ff-only
+    echo "[INFO] Done cloning"
+
+    exit 0

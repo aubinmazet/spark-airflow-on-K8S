@@ -1,0 +1,67 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/name: {{ include "airflow.fullname" . }}-scheduler
+  name: {{ include "airflow.fullname" . }}-scheduler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "airflow.fullname" . }}-scheduler
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "airflow.fullname" . }}-scheduler
+    spec:
+      volumes:
+        - name: dags
+          emptyDir: {}
+        - name: template
+          emptyDir: {}
+      serviceAccountName: {{ include "airflow.serviceAccountName" . }}
+      containers:
+      - image: aubinob1/airflow-local
+        imagePullPolicy: Always
+        name: {{ include "airflow.name" . }}-scheduler
+        resources: {}
+        volumeMounts:
+          - name: dags
+            mountPath: /usr/local/airflow/dags
+          - name: template
+            mountPath: /usr/local/airflow/template
+        envFrom:
+          - configMapRef:
+              name: airflow-envvars
+        env:
+          - name: AIRFLOW__CORE__FERNET_KEY
+            value: {{ .Values.airflow.fernetKey }}
+          - name: AIRFLOW__CORE__SQL_ALCHEMY_CONN
+            value: postgresql+psycopg2://{{ .Values.airflow.db.username }}:{{ .Values.airflow.db.password }}@{{ .Values.airflow.db.hostname }}/{{ .Values.airflow.db.database }}
+          - name: AIRFLOW__API__AUTH_BACKEND
+            value: airflow.api.auth.backend.basic_auth
+          - name: POSTGRES_HOST
+            value: postgres
+          - name: POSTGRES_USER
+            value: admin
+          - name: POSTGRES_PASSWORD
+            value: pwd
+          - name: POSTGRES_DB
+            value: testdb
+          - name: POSTGRES_PORT
+            value: "5432"
+          - name: AIRFLOW__CORE__LOAD_EXAMPLES 
+            value: 'false'
+          - name: AIRFLOW__CORE__EXECUTOR
+            value: {{ .Values.airflow.executor }}
+        command:
+          - "/usr/bin/dumb-init"
+          - "--"
+        args:
+          - "bash"
+          - "-c"
+          - "exec airflow scheduler"
+      hostname: {{ include "airflow.name" . }}-scheduler
+      restartPolicy: Always

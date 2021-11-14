@@ -1,0 +1,61 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/name: {{ include "airflow.fullname" . }}-webserver
+  name: {{ include "airflow.fullname" . }}-webserver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "airflow.fullname" . }}-webserver
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "airflow.fullname" . }}-webserver
+    spec:
+      initContainers:
+        - name: run-airflow-migrations
+          image: aubinob1/airflow-local
+          imagePullPolicy: IfNotPresent
+          args: ["bash", "-c", "airflow upgradedb || airflow db upgrade"]
+          env:          
+          - name: AIRFLOW__CORE__FERNET_KEY
+            value: {{ .Values.airflow.fernetKey }}
+          - name: AIRFLOW__CORE__SQL_ALCHEMY_CONN
+            value: postgresql+psycopg2://{{ .Values.airflow.db.username }}:{{ .Values.airflow.db.password }}@{{ .Values.airflow.db.hostname }}/{{ .Values.airflow.db.database }}
+          - name: AIRFLOW__API__AUTH_BACKEND
+            value: airflow.api.auth.backend.basic_auth
+      containers:
+        - image: aubinob1/airflow-local
+          imagePullPolicy: Always
+          name: {{ include "airflow.name" . }}-webserver
+          ports:
+          - name : ui
+            containerPort: {{ .Values.web.port }}
+          env:
+            - name: AIRFLOW__CORE__FERNET_KEY
+              value: {{ .Values.airflow.fernetKey }}
+            - name: POSTGRES_HOST
+              value: {{ include "airflow.fullname" . }}-postgres
+            - name: AIRFLOW__CORE__SQL_ALCHEMY_CONN
+              value: postgresql+psycopg2://{{ .Values.airflow.db.username }}:{{ .Values.airflow.db.password }}@{{ .Values.airflow.db.hostname }}/{{ .Values.airflow.db.database }}
+            - name: AIRFLOW__API__AUTH_BACKEND
+              value: airflow.api.auth.backend.basic_auth
+            - name: AIRFLOW__CORE__LOAD_EXAMPLES 
+              value: 'true'
+            - name: AIRFLOW__CORE__EXECUTOR
+              value: {{ .Values.airflow.executor }}
+          command:
+                - "/usr/bin/dumb-init"
+                - "--"
+          args:
+            - "bash"
+            - "-c"
+            - "exec airflow webserver"
+      hostname: {{ include "airflow.name" . }}-webserver
+      restartPolicy: Always
+      serviceAccountName: airflow-staging
+      volumes: null

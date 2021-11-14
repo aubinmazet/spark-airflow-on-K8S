@@ -1,0 +1,9 @@
+---
+name: airflow
+description: A generated Helm Chart for airflow
+version: 0.0.1
+apiVersion: v1
+keywords:
+  - airflow
+sources:
+home:

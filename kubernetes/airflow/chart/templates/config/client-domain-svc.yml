@@ -1,0 +1,16 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "airflow.fullname" . }}-domain
+spec:
+  selector:
+    name: {{ include "airflow.fullname" . }}-driver
+  clusterIP: None
+  ports:
+    - name: spark-block-manager
+      port: 35430
+      targetPort: 35430
+    - name: spark-driver
+      port: 46323
+      targetPort: 46323
